@@ -2,6 +2,12 @@ import hashlib
 
 from django.db import models
 
+from .parsers import (
+    parse_salary_to_yen,
+    required_jlpt_level,
+    parse_location_region as _region_for_text,
+    detect_remote_text as _detect_remote_text,
+)
 
 class Job(models.Model):
     SOURCE_CHOICES = [
@@ -34,6 +40,12 @@ class Job(models.Model):
     language = models.CharField(max_length=20, choices=LANGUAGE_CHOICES, null=True, blank=True)
     experience_required = models.CharField(max_length=100, blank=True, default="")
 
+    # Location: free-text as scraped, plus derived region/country for filtering.
+    location = models.CharField(max_length=300, blank=True, default="")
+    country = models.CharField(max_length=80, blank=True, default="", db_index=True)
+    region = models.CharField(max_length=80, blank=True, default="", db_index=True)
+    is_remote = models.BooleanField(default=False, db_index=True)
+
     is_active = models.BooleanField(default=True)
     is_formatted = models.BooleanField(default=False, db_index=True)
     is_ranked = models.BooleanField(default=False, db_index=True)
@@ -55,7 +67,23 @@ class Job(models.Model):
     def save(self, *args, **kwargs):
         if not self.is_formatted:
             self.is_ranked = False
+        # Derive region/country/remoteness from the location/description when the
+        # caller didn't supply them, so location filtering works on legacy rows too.
+        self._derive_location_fields()
         super().save(*args, **kwargs)
+
+    def _derive_location_fields(self):
+        loc_text = " ".join(filter(None, [self.location, self.title, self.description]))
+        if not (self.region and self.country):
+            region, country, _city = _region_for_text(loc_text)
+            if not self.region and region:
+                self.region = region
+            if not self.country and country:
+                self.country = country
+        if not self.is_remote:
+            self.is_remote = _detect_remote_text(
+                " ".join(filter(None, [self.location, self.title, self.description, self.full_description]))
+            )
 
     def __str__(self):
         return f"{self.title} @ {self.company}"
@@ -74,6 +102,10 @@ class JobRanking(models.Model):
     profile_id = models.CharField(max_length=100)
     profile_title = models.CharField(max_length=200, blank=True, default="")
     match_tier = models.CharField(max_length=2, choices=TIER_CHOICES)
+    llm_tier = models.CharField(max_length=2, choices=TIER_CHOICES, null=True, blank=True)
+    deterministic_tier = models.CharField(max_length=2, choices=TIER_CHOICES, null=True, blank=True)
+    match_score = models.PositiveSmallIntegerField(null=True, blank=True, db_index=True)
+    signals = models.JSONField(null=True, blank=True)
     rank = models.PositiveIntegerField()
     jd_summary = models.TextField(blank=True, default="")
 
