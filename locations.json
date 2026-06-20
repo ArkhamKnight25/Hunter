@@ -1,6 +1,6 @@
 {
   "_comment": "Target locations the pipeline scrapes & ranks against. `active` lists the ids that are live; each profile may further narrow via its own `target_locations` (or 'all'). region/country/city/aliases drive deterministic location matching in matching.py; linkedin_geo_id / indeed_* / search_keywords drive actor-config generation in build_actor_configs.py.",
-  "active": ["japan_tokyo", "remote_global"],
+  "active": ["india_bangalore", "remote_global"],
   "locations": {
     "japan_tokyo": {
       "id": "japan_tokyo",
@@ -51,7 +51,7 @@
       "linkedin_f_E": "",
       "indeed_country": "IN",
       "indeed_location": "Bengaluru",
-      "schedule_frequency": "every_2_days"
+      "schedule_frequency": "daily"
     },
     "europe_berlin": {
       "id": "europe_berlin",
