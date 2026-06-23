@@ -105,40 +105,61 @@ fi
 # ── 3. Update Vercel env var ──────────────────────────────────────────────────
 echo "🔧  Patching Vercel BACKEND_INTERNAL_URL → $TUNNEL_URL ..."
 
-TEAM_PARAM=""
-if [[ -n "$VERCEL_TEAM_ID" ]]; then
-  TEAM_PARAM="?teamId=$VERCEL_TEAM_ID"
-fi
+python3 -c "
+import urllib.request, json, sys
+token = '${VERCEL_TOKEN}'
+project_id = '${VERCEL_PROJECT_ID}'
+team_id = '${VERCEL_TEAM_ID}'
+tunnel_url = '${TUNNEL_URL}'
 
-# Upsert env var (creates if missing, updates if it exists)
-# target=["production","preview"] covers both Vercel environments
-VERCEL_API_RESPONSE=$(curl -sf -X PATCH \
-  "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/env${TEAM_PARAM}" \
-  -H "Authorization: Bearer $VERCEL_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "[{
-    \"key\": \"BACKEND_INTERNAL_URL\",
-    \"value\": \"$TUNNEL_URL\",
-    \"type\": \"plain\",
-    \"target\": [\"production\", \"preview\"]
-  }]" 2>&1 || true)
+team_param = f'?teamId={team_id}' if team_id else ''
 
-# If PATCH (upsert) fails, the var might not exist yet — try POST
-if echo "$VERCEL_API_RESPONSE" | grep -q '"error"'; then
-  echo "   (PATCH failed, trying POST to create...)"
-  VERCEL_API_RESPONSE=$(curl -sf -X POST \
-    "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env${TEAM_PARAM}" \
-    -H "Authorization: Bearer $VERCEL_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "[{
-      \"key\": \"BACKEND_INTERNAL_URL\",
-      \"value\": \"$TUNNEL_URL\",
-      \"type\": \"plain\",
-      \"target\": [\"production\", \"preview\"]
-    }]" 2>&1 || true)
-fi
+# 1. Fetch env vars to find if BACKEND_INTERNAL_URL exists
+req = urllib.request.Request(f'https://api.vercel.com/v9/projects/{project_id}/env{team_param}')
+req.add_header('Authorization', f'Bearer {token}')
+try:
+    with urllib.request.urlopen(req) as r:
+        envs = json.loads(r.read().decode()).get('envs', [])
+except Exception as e:
+    print('Failed to list Vercel envs:', e)
+    sys.exit(1)
 
-echo "   Vercel API response: $VERCEL_API_RESPONSE" | head -3
+env_id = next((e['id'] for e in envs if e['key'] == 'BACKEND_INTERNAL_URL'), None)
+
+if env_id:
+    # Update existing variable
+    req_patch = urllib.request.Request(
+        f'https://api.vercel.com/v9/projects/{project_id}/env/{env_id}{team_param}',
+        data=json.dumps({'value': tunnel_url, 'target': ['production', 'preview']}).encode(),
+        headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+        method='PATCH'
+    )
+    try:
+        with urllib.request.urlopen(req_patch) as r:
+            print('   Successfully patched Vercel env var.')
+    except Exception as e:
+        print('   Failed to patch env:', e)
+        sys.exit(1)
+else:
+    # Create new variable
+    req_post = urllib.request.Request(
+        f'https://api.vercel.com/v10/projects/{project_id}/env{team_param}',
+        data=json.dumps({
+            'key': 'BACKEND_INTERNAL_URL',
+            'value': tunnel_url,
+            'type': 'plain',
+            'target': ['production', 'preview']
+        }).encode(),
+        headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+        method='POST'
+    )
+    try:
+        with urllib.request.urlopen(req_post) as r:
+            print('   Successfully created Vercel env var.')
+    except Exception as e:
+        print('   Failed to create env:', e)
+        sys.exit(1)
+"
 echo "✅  Vercel env updated."
 
 # ── 4. Restart Django to pick up new ALLOWED_HOSTS ───────────────────────────
@@ -149,9 +170,9 @@ echo "✅  Django restarted."
 # ── 5. Trigger Vercel redeploy ────────────────────────────────────────────────
 echo "🚀  Triggering Vercel redeploy..."
 
-# Get the latest deployment ID for the production environment
+# Get the latest deployment ID for the project
 LATEST_DEPLOY=$(curl -sf \
-  "https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&target=production&limit=1${VERCEL_TEAM_ID:+&teamId=$VERCEL_TEAM_ID}" \
+  "https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&limit=1${VERCEL_TEAM_ID:+&teamId=$VERCEL_TEAM_ID}" \
   -H "Authorization: Bearer $VERCEL_TOKEN" 2>/dev/null \
   | grep -o '"uid":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
 
@@ -160,7 +181,7 @@ if [[ -n "$LATEST_DEPLOY" ]]; then
     "https://api.vercel.com/v13/deployments?forceNew=1${VERCEL_TEAM_ID:+&teamId=$VERCEL_TEAM_ID}" \
     -H "Authorization: Bearer $VERCEL_TOKEN" \
     -H "Content-Type: application/json" \
-    -d "{\"deploymentId\": \"$LATEST_DEPLOY\"}" 2>/dev/null || true)
+    -d "{\"name\": \"hunter\", \"deploymentId\": \"$LATEST_DEPLOY\"}" 2>/dev/null || true)
   echo "✅  Redeploy triggered (deployment: $LATEST_DEPLOY)"
 else
   echo "⚠️   Could not find a production deployment to redeploy."
