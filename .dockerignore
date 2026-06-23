@@ -8,5 +8,7 @@ jobs-finder/
 *.pyc
 .env
 .env.example
+my-laptop.env
+deploy/homelab/my-laptop.env
 .python-version
 README.md

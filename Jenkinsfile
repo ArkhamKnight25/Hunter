@@ -7,8 +7,12 @@ pipeline {
   }
 
   environment {
-    IMAGE_NAME    = 'ghcr.io/harsh-upadhayay/job-hunt'
-    FRONTEND_IMAGE = 'ghcr.io/harsh-upadhayay/job-hunt-frontend'
+    // Upstream homelab Jenkins config (not used by this fork — we ship via
+    // GitHub Actions -> ghcr.io/arkhamknight25/hunter). Kept for reference.
+    // IMAGE_NAME    = 'ghcr.io/harsh-upadhayay/job-hunt'
+    // FRONTEND_IMAGE = 'ghcr.io/harsh-upadhayay/job-hunt-frontend'
+    IMAGE_NAME    = 'ghcr.io/arkhamknight25/hunter'
+    FRONTEND_IMAGE = 'ghcr.io/arkhamknight25/hunter-frontend'
   }
 
   stages {

@@ -1,4 +1,8 @@
 .env
+my-laptop.env
+deploy/homelab/my-laptop.env
+# Reference clone of upstream homelab repo (Harsh-Upadhayay/homelab) — not part of Hunter.
+ref/
 /venv
 /.venv
 /__pycache__

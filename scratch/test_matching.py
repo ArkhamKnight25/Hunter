@@ -29,6 +29,20 @@ BACKEND_PROFILE = {
 
 TOKYO_REMOTE = [locations.get_location("japan_tokyo"), locations.get_location("remote_global")]
 
+# India is the primary target market (all-India, not just Bengaluru).
+INDIA_PROFILE = {
+    "id": "Dev0",
+    "title": "Software Developer / Software Engineer (New Grad)",
+    "experience_years": 0.5,
+    "max_experience_years": 2,
+    "languages": ["English"],
+    "target_locations": ["india_bangalore", "remote_global"],
+    "core_skills": ["C++", "Python", "Go", "Django", "Node.js", "React.js",
+                    "PostgreSQL", "Docker", "AWS", "FastAPI", "REST API Development"],
+}
+
+INDIA_REMOTE = [locations.get_location("india_bangalore"), locations.get_location("remote_global")]
+
 
 class CanonicalSkillTests(unittest.TestCase):
     def test_aliases(self):
@@ -334,6 +348,77 @@ class LocationsConfigTests(unittest.TestCase):
         region, country, city = locations.region_for_text("Remote role, team in Bangalore India")
         self.assertEqual(region, "india")
         self.assertEqual(country, "IN")
+
+
+class IndiaMarketTests(unittest.TestCase):
+    """India is the primary target market; jobs anywhere in India (not just
+    Bengaluru) should match, with no Japanese-language gating."""
+
+    def test_india_backend_strong_match(self):
+        job = {
+            "title": "Backend Engineer (Python)",
+            "company": "IndiaSaaS",
+            "description": "Build Python/Django REST APIs with PostgreSQL and Docker on AWS. Bengaluru-based team.",
+            "tech_stack": ["Python", "Django", "PostgreSQL", "AWS", "Docker"],
+            "experience_required": "1 year",
+            "language": "EN",
+            "location": "Bengaluru, India",
+        }
+        res = matching.compute_match(INDIA_PROFILE, job, INDIA_REMOTE)
+        self.assertFalse(res["hard_fail"])
+        self.assertIn(res["tier"], ("S", "A", "B"))
+        self.assertIn("python", res["signals"]["matched_skills"])
+
+    def test_india_non_bangalore_city_matches(self):
+        # All-India: Hyderabad / Pune / NCR must resolve to the india target.
+        for city in ("Hyderabad, India", "Pune, India", "Gurugram, India", "Remote India"):
+            job = {
+                "title": "Software Engineer",
+                "description": "Python and React role.",
+                "tech_stack": ["Python", "React.js"],
+                "experience_required": "1 year", "language": "EN", "location": city,
+            }
+            res = matching.compute_match(INDIA_PROFILE, job, INDIA_REMOTE)
+            self.assertFalse(res["hard_fail"], f"{city} should not hard-fail location")
+            self.assertGreater(res["signals"]["location"], 0.0, f"{city} should match india target")
+
+    def test_india_senior_role_hard_fails(self):
+        job = {
+            "title": "Senior Staff Software Engineer",
+            "description": "Lead architecture for our platform in Bengaluru.",
+            "tech_stack": ["Python"], "experience_required": "8 years",
+            "language": "EN", "location": "Bengaluru, India",
+        }
+        res = matching.compute_match(INDIA_PROFILE, job, INDIA_REMOTE)
+        self.assertTrue(res["hard_fail"])
+        self.assertEqual(res["tier"], "F")
+
+    def test_india_internship_hard_fails(self):
+        job = {"title": "Software Engineering Intern", "description": "Python internship in Pune.",
+               "tech_stack": ["Python"], "language": "EN", "location": "Pune, India"}
+        res = matching.compute_match(INDIA_PROFILE, job, INDIA_REMOTE)
+        self.assertTrue(res["hard_fail"])
+
+    def test_india_english_job_no_language_gate(self):
+        # Indian tech is English-default: an English JD must never be language-gated.
+        job = {
+            "title": "Backend Developer",
+            "description": "Python/Django backend role. English-speaking team in India.",
+            "tech_stack": ["Python", "Django"], "experience_required": "1 year",
+            "language": "EN", "location": "Bengaluru, India",
+        }
+        res = matching.compute_match(INDIA_PROFILE, job, INDIA_REMOTE)
+        self.assertFalse(res["hard_fail"])
+
+    def test_india_region_resolution(self):
+        region, country, city = locations.region_for_text("Backend role in Hyderabad, India")
+        self.assertEqual(region, "india")
+        self.assertEqual(country, "IN")
+
+    def test_india_profile_targets_resolve(self):
+        cfgs = locations.location_cfgs_for_profile(INDIA_PROFILE)
+        ids = {c["id"] for c in cfgs}
+        self.assertEqual(ids, {"india_bangalore", "remote_global"})
 
 
 if __name__ == "__main__":

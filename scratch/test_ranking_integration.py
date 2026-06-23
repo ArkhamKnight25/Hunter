@@ -65,6 +65,44 @@ class ApplyMatchingEngineTests(unittest.TestCase):
         self.assertEqual(backend["llm_tier"], "S")  # raw LLM tier preserved
 
 
+class IndiaProfileTests(unittest.TestCase):
+    """India is the primary market: the Dev0 new-grad India profile must be
+    present and rankable, and an India-located junior job must not hard-fail it."""
+
+    def _india_job(self, **over):
+        base = {
+            "id": 7, "title": "Backend Developer (Python)", "company": "IndiaSaaS",
+            "full_description": "Build Python/Django REST APIs with PostgreSQL on AWS. "
+                                "English-speaking team in Bengaluru, India. 1 year exp.",
+            "description": "Python/Django backend role in India",
+            "tech_stack": ["Python", "Django", "PostgreSQL", "AWS"],
+            "experience_required": "1 year", "language": "EN",
+            "location": "Bengaluru, India",
+        }
+        base.update(over)
+        return base
+
+    def test_dev0_profile_present(self):
+        ids = {p["id"] for p in PROFILES}
+        self.assertIn("Dev0", ids, "India new-grad profile Dev0 must be in user-profiles.json")
+
+    def test_dev0_india_job_not_hard_failed(self):
+        dev0 = next(p for p in PROFILES if p["id"] == "Dev0")
+        llm = [{"profile_id": "Dev0", "match_tier": "A", "jd_summary": "x"}]
+        out = ranking._apply_matching_engine(llm, self._india_job(), [dev0])
+        match = out[0]
+        self.assertNotEqual(match["match_tier"], "F")
+        self.assertIn(match["match_tier"], list("SABC"))
+
+    def test_dev0_other_india_cities(self):
+        # All-India focus: Hyderabad / Pune jobs are valid, not just Bengaluru.
+        dev0 = next(p for p in PROFILES if p["id"] == "Dev0")
+        for city in ("Hyderabad, India", "Pune, India"):
+            llm = [{"profile_id": "Dev0", "match_tier": "B", "jd_summary": "x"}]
+            out = ranking._apply_matching_engine(llm, self._india_job(location=city), [dev0])
+            self.assertNotEqual(out[0]["match_tier"], "F", f"{city} should be rankable")
+
+
 class ProfileImmutabilityTests(unittest.TestCase):
     """Regression tests for H5: shared profile dicts must not be mutated by ranking tasks."""
 

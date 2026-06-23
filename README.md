@@ -119,8 +119,8 @@ Because we use `django-celery-beat`, schedules are managed directly in the brows
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/deep-astaad/job-hunt
-   cd job-hunt
+   git clone https://github.com/ArkhamKnight25/Hunter
+   cd Hunter
    ```
 
 2. **Environment Variables:**

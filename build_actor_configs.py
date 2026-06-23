@@ -31,39 +31,87 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # pairs), senior/non-target roles removed, JP-context noise dropped.
 # 34 → 16 unique queries; paired with count=100 this cuts Apify volume ~88%.
 ROLES = [
+    # Java / Spring
+    "Java Developer",
+    "Java Engineer",
+    "Java Backend Developer",
+    "Java Backend Engineer",
+    "Spring Boot Developer",
+    "Spring Boot Engineer",
+    "Java Spring Boot Developer",
+    # AI / ML
+    "AI Engineer",
+    "AI Developer",
+    "Artificial Intelligence Engineer",
+    "Machine Learning Engineer",
+    "Machine Learning Developer",
+    "ML Engineer",
+    "AI ML Engineer",
+    "Generative AI Engineer",
+    "GenAI Engineer",
+    "LLM Engineer",
+    "NLP Engineer",
+    "Computer Vision Engineer",
+    "Deep Learning Engineer",
+    "MLOps Engineer",
+    "Python AI Engineer",
+    "Python ML Engineer",
+    # Python
+    "Python Developer",
+    "Python Engineer",
+    "Python Backend Developer",
+    "Python Backend Engineer",
+    "Django Developer",
+    "Django Engineer",
+    "Flask Developer",
+    "FastAPI Developer",
+    # Go
+    "Go Developer",
+    "Go Engineer",
+    "Golang Developer",
+    "Golang Engineer",
+    # C++
+    "C++ Developer",
+    "C++ Engineer",
+    "CPP Developer",
+    # Node
+    "Node.js Developer",
+    "Node.js Engineer",
+    "NodeJS Developer",
+    # React / Frontend
+    "React Developer",
+    "React Engineer",
+    "React.js Developer",
+    "ReactJS Developer",
+    "Frontend Developer React",
+    # Full stack
+    "Full Stack Developer",
+    "Full Stack Engineer",
+    "Full Stack Developer Java React",
+    "Full Stack Developer Node React",
+    "Full Stack Developer Python React",
+    # General backend / infra (non-senior)
+    "Backend Developer",
+    "Backend Engineer",
+    "Software Developer",
+    "Software Engineer",
     "API Developer",
     "API Engineer",
-    "AI Engineer",
     "Application Engineer",
     "Automation Engineer",
     "AWS Engineer",
-    "Backend Developer",
-    "Backend Engineer",
     "Cloud Engineer",
     "Cloud Solutions Architect",
     "Data Engineer",
     "DevOps Engineer",
-    "Django Developer",
-    "Django Engineer",
-    "Engineering Lead",
     "English Speaking Software Engineer",
-    "Full Stack Developer",
-    "Full Stack Engineer",
-    "Go Engineer",
-    "Golang Engineer",
     "Infrastructure Engineer",
-    "Machine Learning Engineer",
     "Platform Engineer",
-    "Python Developer",
-    "Python Engineer",
     "Remote Backend Engineer",
     "Server Side Engineer",
     "Site Reliability Engineer",
-    "Software Developer",
-    "Software Engineer",
     "Solutions Architect",
     "Systems Engineer",
-    "Technical Lead",
     "Web Developer",
 ]
 
@@ -121,10 +169,11 @@ def _linkedin_config(loc_cfg):
 
 def _indeed_config(loc_cfg):
     is_japan = loc_cfg.get("region") == "japan"
+    _roles = '(Java OR "Spring Boot" OR Python OR Django OR Flask OR FastAPI OR Go OR Golang OR "C++" OR Node.js OR NodeJS OR React OR Backend OR AI OR ML OR "Machine Learning" OR "Deep Learning" OR LLM OR NLP OR MLOps OR "Solutions Architect")'
     if is_japan:
-        title = '(Backend OR Python OR Django OR AWS OR DevOps OR "Solutions Architect") ("No Japanese" OR English)'
+        title = f'{_roles} ("No Japanese" OR English)'
     else:
-        title = '(Backend OR Python OR Django OR AWS OR DevOps OR "Solutions Architect")'
+        title = _roles
         
     limit = loc_cfg.get("indeed_scrape_limit", 100)
     inp = {

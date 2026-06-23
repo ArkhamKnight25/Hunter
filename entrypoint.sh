@@ -8,6 +8,7 @@ case "$APP_MODE" in
     echo "Starting Django backend..."
     cd /app/backend
     python manage.py migrate --noinput
+    python manage.py collectstatic --noinput
     exec python manage.py runserver 0.0.0.0:8000
     ;;
   job-finder)
