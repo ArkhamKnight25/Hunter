@@ -28,7 +28,7 @@ export function JobCard({ item, isSelected, onClick, onApplyTriggered }: Props) 
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
       className={cn(
-        "w-full text-left border-l-[3px] border border-b-0 last:border-b cursor-pointer group",
+        "w-full text-left border-l-[3px] border-b cursor-pointer group",
         "transition-colors duration-100 select-none",
         TIER_ACCENT[item.match_tier],
         isSelected

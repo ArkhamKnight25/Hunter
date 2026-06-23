@@ -27,6 +27,13 @@ async function djFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 // ── Browse ────────────────────────────────────────────────────────────────
 
+/** Maps role category UI tabs to a keyword hint sent as part of the `q` search param. */
+const ROLE_CATEGORY_KEYWORDS: Record<string, string> = {
+  ai_ml: "machine learning",
+  sde: "engineer",
+  java: "Java",
+};
+
 export async function fetchBrowsePage(
   filters: BrowseFilters,
   page: number,
@@ -41,7 +48,10 @@ export async function fetchBrowsePage(
   if (filters.remote) p.set("remote", filters.remote);
   if (filters.applied) p.set("applied", filters.applied);
   p.set("date", filters.date);
-  if (filters.q) p.set("q", filters.q);
+  // Combine role category keyword with user's own search term
+  const categoryKw = filters.roleCategory ? (ROLE_CATEGORY_KEYWORDS[filters.roleCategory] ?? "") : "";
+  const combinedQ = [categoryKw, filters.q].filter(Boolean).join(" ");
+  if (combinedQ) p.set("q", combinedQ);
   p.set("page", String(page));
   p.set("page_size", String(pageSize));
   return djFetch<PaginatedResponse<BrowseItem>>(`/browse/?${p.toString()}`);

@@ -31,6 +31,13 @@ const DATE_OPTS = [
   { value: "all" as const, label: "All" },
 ];
 
+const ROLE_OPTS: { value: "" | "ai_ml" | "sde" | "java"; label: string; icon: string }[] = [
+  { value: "",       label: "All",   icon: "·" },
+  { value: "ai_ml",  label: "AI·ML", icon: "🤖" },
+  { value: "sde",    label: "SDE",   icon: "⌨️" },
+  { value: "java",   label: "Java",  icon: "☕" },
+];
+
 const NAV = [
   { href: "/", label: "Browse", icon: Briefcase },
   { href: "/insights", label: "Insights", icon: BarChart2 },
@@ -172,6 +179,32 @@ export function Sidebar({ isOpen, onClose, onOpenSettings }: Props) {
               onChange={(e) => setLocalQ(e.target.value)}
               className="w-full bg-base-card border border-border rounded-md pl-8 pr-3 py-1.5 text-sm text-ink-primary placeholder:text-ink-muted focus:border-brand outline-none transition-colors"
             />
+          </div>
+        </div>
+
+        {/* Role Category */}
+        <div>
+          <FilterLabel>Role</FilterLabel>
+          <div className="grid grid-cols-2 gap-1">
+            {ROLE_OPTS.map((opt) => {
+              const active = filters.roleCategory === opt.value;
+              return (
+                <button
+                  key={opt.value || "all"}
+                  onClick={() => updateFilters({ roleCategory: opt.value })}
+                  aria-pressed={active}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium border transition-all",
+                    active
+                      ? "bg-brand/8 text-brand border-brand/30 font-semibold"
+                      : "bg-base-card text-ink-muted border-border hover:border-border-hover hover:text-ink-primary"
+                  )}
+                >
+                  <span className="text-[0.7rem]">{opt.icon}</span>
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 

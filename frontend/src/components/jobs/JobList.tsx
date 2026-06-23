@@ -32,7 +32,7 @@ export function JobList({
   const rowVirtualizer = useVirtualizer({
     count: hasNextPage ? items.length + 1 : items.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 180,
+    estimateSize: () => 105,
     overscan: 5,
   });
 

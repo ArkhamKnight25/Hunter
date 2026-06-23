@@ -10,7 +10,7 @@ function defaultFilters(profileId: string, params: URLSearchParams): BrowseFilte
   const tiersParam = params.get("tiers");
   const tiers: Tier[] = tiersParam
     ? (tiersParam.split(",").filter((t) => ALL_TIERS.includes(t as Tier)) as Tier[])
-    : ["S", "A"];
+    : ["S", "A", "B"];
 
   return {
     profileId,
@@ -20,8 +20,9 @@ function defaultFilters(profileId: string, params: URLSearchParams): BrowseFilte
     location: params.get("location") ?? "japan",
     remote: (params.get("remote") as BrowseFilters["remote"]) ?? "",
     applied: (params.get("applied") as BrowseFilters["applied"]) ?? "",
-    date: (params.get("date") as BrowseFilters["date"]) ?? "today",
+    date: (params.get("date") as BrowseFilters["date"]) ?? "7days",
     q: params.get("q") ?? "",
+    roleCategory: (params.get("role") as BrowseFilters["roleCategory"]) ?? "",
     page: 1,
   };
 }
@@ -34,14 +35,15 @@ interface FilterContextValue {
 const FilterContext = createContext<FilterContextValue>({
   filters: {
     profileId: "",
-    tiers: ["S", "A"],
+    tiers: ["S", "A", "B"],
     source: "",
     language: "",
     location: "japan",
     remote: "",
     applied: "",
-    date: "today",
+    date: "7days",
     q: "",
+    roleCategory: "",
     page: 1,
   },
   updateFilters: () => {},
@@ -69,14 +71,17 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
         // Only sync to URL on the browse page
         if (typeof window !== "undefined" && (window.location.pathname.endsWith("/") || window.location.pathname === "")) {
           const p = new URLSearchParams();
-          if (next.tiers.length && next.tiers.length < 5) p.set("tiers", next.tiers.join(","));
+          const defaultTiers = ["S", "A", "B"];
+          const isDefaultTiers = next.tiers.length === defaultTiers.length && defaultTiers.every((t) => next.tiers.includes(t as Tier));
+          if (next.tiers.length && !isDefaultTiers) p.set("tiers", next.tiers.join(","));
           if (next.source) p.set("source", next.source);
           if (next.language) p.set("language", next.language);
           if (next.location) p.set("location", next.location);
           if (next.remote) p.set("remote", next.remote);
           if (next.applied) p.set("applied", next.applied);
-          if (next.date !== "today") p.set("date", next.date);
+          if (next.date !== "7days") p.set("date", next.date);
           if (next.q) p.set("q", next.q);
+          if (next.roleCategory) p.set("role", next.roleCategory);
           const qs = p.toString();
           router.replace(`${pathname}${qs ? "?" + qs : ""}`, { scroll: false });
         }

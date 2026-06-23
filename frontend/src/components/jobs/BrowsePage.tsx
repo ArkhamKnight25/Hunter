@@ -46,7 +46,12 @@ export function BrowsePage() {
       )}>
         {/* Result count header */}
         <div className="px-3 py-2 border-b border-border bg-base-surface flex items-center justify-between shrink-0">
-          <span className="text-xs font-semibold text-ink-secondary">Jobs</span>
+          <span className="text-xs font-semibold text-ink-secondary">
+            {filters.roleCategory === "ai_ml" ? "AI · ML"
+              : filters.roleCategory === "sde" ? "SDE"
+              : filters.roleCategory === "java" ? "Java"
+              : "Jobs"}
+          </span>
           {!isLoading && (
             <span className="text-xs text-ink-muted tabular-nums">
               {(data?.pages[0]?.count ?? 0).toLocaleString()} results
@@ -54,7 +59,7 @@ export function BrowsePage() {
           )}
         </div>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden">
           <JobList
             items={items}
             selectedId={selectedItem?.id ?? null}

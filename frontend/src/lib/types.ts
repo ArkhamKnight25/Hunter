@@ -163,5 +163,6 @@ export interface BrowseFilters {
   applied: "" | "true" | "false";
   date: "today" | "3days" | "7days" | "all";
   q: string;
+  roleCategory: "" | "ai_ml" | "sde" | "java";
   page: number;
 }
