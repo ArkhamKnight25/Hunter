@@ -67,8 +67,9 @@ ROLES = [
     "Web Developer",
 ]
 
-# Recent-postings window (LinkedIn f_TPR): r86400 = last 24h.
-_LINKEDIN_TPR = "r3600"
+# Recent-postings window (LinkedIn f_TPR): r86400 = last 24h. Keep at 24h so
+# daily/manual runs don't miss postings (r3600 = 1h only suits hourly Beat runs).
+_LINKEDIN_TPR = "r86400"
 
 
 def _linkedin_url(keyword, loc_cfg, append_english):

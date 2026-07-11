@@ -328,6 +328,23 @@
         gap: 1rem;
     }
 
+    /* Gentle entrance for job cards (respects reduced-motion) */
+    @keyframes cardIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .job-card {
+            animation: cardIn 0.45s var(--ease-smooth) backwards;
+        }
+        .job-card:nth-child(1) { animation-delay: 0.03s; }
+        .job-card:nth-child(2) { animation-delay: 0.08s; }
+        .job-card:nth-child(3) { animation-delay: 0.13s; }
+        .job-card:nth-child(4) { animation-delay: 0.18s; }
+        .job-card:nth-child(5) { animation-delay: 0.23s; }
+    }
+
     /* Job Card Design */
     .job-card {
         background: var(--bg-card);
@@ -1110,12 +1127,12 @@
         </div>
     </div>
 
-    <!-- Japanese Language ROI Card -->
+    {% if insights.jp %}
+    <!-- Japanese Language ROI Card (only when JP jobs exist in the corpus) -->
     <div class="stat-card" data-expand-title="Japanese Language ROI">
         <div class="stat-icon">🇯🇵</div>
         <div class="stat-info" style="width: 100%;">
             <span class="stat-label">Japanese Language ROI</span>
-            {% if insights.jp %}
             <span class="stat-value">{{ insights.jp.locked_pct }}%</span>
             <p style="font-size: 0.8125rem; color: var(--text-secondary); margin: -0.4rem 0 0.6rem; line-height: 1.55;">
                 of your skill-relevant roles are locked behind Japanese.{% if insights.jp.unlock_pct %} Learning Japanese would grow your reachable roles by <strong style="color: var(--brand-primary);">{{ insights.jp.unlock_pct }}%</strong>.{% endif %}
@@ -1144,13 +1161,34 @@
                 </div>
             </div>
             {% endif %}
-            {% else %}
-            <div style="font-size: 0.8125rem; color: var(--text-muted); font-style: italic; padding: 1rem 0;">
-                No data available.
-            </div>
-            {% endif %}
         </div>
     </div>
+    {% else %}
+    <!-- Top Hiring Locations Card -->
+    <div class="stat-card" data-expand-title="Top Hiring Locations">
+        <div class="stat-icon">📍</div>
+        <div class="stat-info" style="width: 100%;">
+            <span class="stat-label">Top Hiring Locations</span>
+            <div class="trending-tech-container">
+                {% for loc in insights.locations %}
+                <div class="tech-progress-row">
+                    <div class="tech-progress-info">
+                        <span class="tech-name">{{ loc.name }}</span>
+                        <span class="tech-count-pct">{{ loc.count }} job{{ loc.count|pluralize }}</span>
+                    </div>
+                    <div class="tech-bar-bg">
+                        <div class="tech-bar-fill" style="width: {{ loc.percentage }}%;"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="font-size: 0.8125rem; color: var(--text-muted); font-style: italic; text-align: center; padding: 1rem 0;">
+                    No location data yet — run the pipeline to populate this.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Market Trends Card -->
     {% if insights.trends %}

@@ -101,6 +101,13 @@
             color: var(--brand-secondary);
         }
 
+        /* Visible focus for keyboard navigation without mouse-click outlines */
+        :focus-visible {
+            outline: 2px solid var(--brand-primary);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
         /* Layout Container */
         .app-container {
             width: 100%;

@@ -230,11 +230,39 @@ def compute_growth_insights(profile, all_profiles=None):
         insights["trends"] = {"rising": rising, "falling": falling}
 
     # ---- Pass 3: Japanese ROI + JLPT-threshold simulation ----
+    # Only relevant when Japanese-language jobs are in the corpus at all
+    # (e.g. Japan is an active target location); otherwise skip the heavy
+    # queries and let the dashboard show the locations card instead.
     GOOD_TIERS = ["S", "A", "B"]
-    
+
+    active_total = Job.objects.filter(is_active=True).count()
+    jp_total = Job.objects.filter(is_active=True, language="JP").count()
+
+    # Top hiring locations among active jobs (city-level free text).
+    loc_counter = Counter(
+        loc for loc in Job.objects.filter(is_active=True)
+        .exclude(location="")
+        .values_list("location", flat=True)
+        if loc
+    )
+    top_locations = loc_counter.most_common(5)
+    if top_locations:
+        max_count = top_locations[0][1]
+        insights["locations"] = [
+            {
+                "name": name,
+                "count": count,
+                "percentage": round((count / max_count) * 100),
+            }
+            for name, count in top_locations
+        ]
+
+    if not jp_total:
+        return insights
+
     locked = 0
     jlpt_levels = Counter()  # required level among the JP-locked roles
-    
+
     if is_all:
         reachable_job_ids = {
             r["job_id"] for r in JobRanking.objects.filter(match_tier__in=GOOD_TIERS, job__is_active=True).values("job_id")
@@ -296,8 +324,6 @@ def compute_growth_insights(profile, all_profiles=None):
                 jlpt_levels[job.jlpt_level or 2] += 1
 
     relevant_total = locked + reachable
-    active_total = Job.objects.filter(is_active=True).count()
-    jp_total = Job.objects.filter(is_active=True, language="JP").count()
     c = jlpt_levels
     insights["jp"] = {
         "locked": locked,

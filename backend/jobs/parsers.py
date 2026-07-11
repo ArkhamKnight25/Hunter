@@ -61,8 +61,9 @@ def normalize_skill(value):
 def parse_salary_to_yen(text):
     """Best-effort parse of a free-text salary into an estimated annual yen figure.
 
-    Handles ranges (averaged), Japanese 万 units, k/M suffixes, and rough USD->JPY.
-    Returns None when nothing usable is found.
+    Handles ranges (averaged), Japanese 万 units, Indian lakh/LPA/crore units,
+    k/M suffixes, and rough USD->JPY / INR->JPY conversion. Returns None when
+    nothing usable is found.
     """
     if not text:
         return None
@@ -71,14 +72,22 @@ def parse_salary_to_yen(text):
     if not nums:
         return None
     vals = [float(n) for n in nums]
+    is_inr = any(u in s for u in ("₹", "inr", "rupee", "lpa", "lakh", "lac", "crore"))
     if "万" in s:
         vals = [v * 10000 for v in vals]
+    elif "crore" in s:
+        vals = [v * 10_000_000 for v in vals]
+    elif any(u in s for u in ("lpa", "lakh", "lac")):
+        # Indian units before the generic k/M branches ("lakh" contains "k").
+        vals = [v * 100_000 for v in vals]
     elif "m" in s or "million" in s:
         vals = [v * 1_000_000 for v in vals]
     elif "k" in s:
         vals = [v * 1000 for v in vals]
     if "$" in s or "usd" in s:
         vals = [v * 150 for v in vals]  # rough USD->JPY for comparability
+    elif is_inr:
+        vals = [v * 1.7 for v in vals]  # rough INR->JPY for comparability
     rep = sum(vals) / len(vals)
     # Discard implausible figures: anything under ~¥1k (hourly/garbage) or over
     # ¥1B (parsing artifacts, equity pools, currency confusion). The upper bound
