@@ -84,12 +84,21 @@ The dashboard has a Location filter; the API `JobFilter` exposes `region`/`count
 
 - Actor configs may carry `fallback_actors`; `tasks/pipeline.start_actor` tries the
   primary then each fallback before counting an actor as lost (survives quota/outage).
-- `llm.chat_completion()` wraps the OpenAI call with an optional **fallback provider**
-  (e.g. local Ollama). Configure `OPENAI_FALLBACK_BASE_URL` / `_MODEL` / `_API_KEY`
-  via the settings modal or env; empty base URL = disabled (default), so existing
-  deployments are unchanged. Recommended local model for 6GB VRAM: `qwen3.5:4b`.
-  Note: wiring Ollama requires the worker to reach it on the network (it's on a
-  separate Docker network by default).
+- `LLM_PROVIDER_MODE` (settings modal / Redis / env) picks the provider for
+  formatting+ranking: `auto` (default; cloud first, local fallback), `cloud`
+  (never fall back), `local` (LM Studio/Ollama only — requires
+  `OPENAI_FALLBACK_BASE_URL`).
+- `llm.chat_completion()` cycles randomly through the primary key pool
+  (`OPENAI_API_KEYS`, e.g. several OpenRouter keys — 3 attempts) and only then
+  falls back to an optional **fallback provider** (e.g. local LM Studio / Ollama).
+  Configure `OPENAI_FALLBACK_BASE_URL` / `_MODEL` / `_API_KEY` via the settings
+  modal or env; empty base URL = disabled (default), so existing deployments are
+  unchanged. Fallback keys are NOT mixed into the primary pool. For LM Studio on
+  the Docker host use `http://host.docker.internal:1234/v1` (any non-empty API key
+  works). Recommended local model for 6GB VRAM: `qwen3.5:4b`.
+- Apify tokens also pool: `APIFY_API_TOKENS` (csv, or the settings-modal token
+  list) + legacy `APIFY_API_TOKEN`; `config.get_apify_api_token()` picks one at
+  random per call so runs cycle across accounts/quotas.
 
 ### Data model (`backend/jobs/models.py`)
 

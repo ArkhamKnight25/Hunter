@@ -9,6 +9,16 @@
     <div class="drawer-body">
         <form id="settingsForm">
             <div class="form-group">
+                <label for="llmProviderMode" class="form-label">LLM Provider for Ranking</label>
+                <select id="llmProviderMode" name="LLM_PROVIDER_MODE" class="form-control">
+                    <option value="auto">Auto — cloud first, LM Studio if it fails</option>
+                    <option value="cloud">Cloud only (OpenRouter / OpenAI)</option>
+                    <option value="local">LM Studio only (local)</option>
+                </select>
+                <small class="text-muted">"LM Studio only" needs the Fallback Base URL below to be set.</small>
+            </div>
+            <hr>
+            <div class="form-group">
                 <label class="form-label">LLM API Keys (Pool)</label>
                 <div id="apiKeysContainer">
                     <!-- Dynamic inputs will be appended here -->
@@ -24,8 +34,25 @@
                 <input type="text" id="openaiModel" name="OPENAI_MODEL" class="form-control" placeholder="gpt-4o-mini" autocomplete="off">
             </div>
             <div class="form-group">
-                <label for="apifyApiToken" class="form-label">Apify API Token</label>
-                <input type="password" id="apifyApiToken" name="APIFY_API_TOKEN" class="form-control" placeholder="apify_api_..." autocomplete="off">
+                <label class="form-label">Apify API Tokens (Pool)</label>
+                <div id="apifyTokensContainer">
+                    <!-- Dynamic inputs will be appended here -->
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="addApifyTokenBtn" style="margin-top: 0.5rem;">+ Add Token</button>
+            </div>
+            <hr>
+            <div class="form-group">
+                <label for="fallbackBaseUrl" class="form-label">Fallback LLM Base URL (LM Studio / Ollama)</label>
+                <input type="text" id="fallbackBaseUrl" name="OPENAI_FALLBACK_BASE_URL" class="form-control" placeholder="http://host.docker.internal:1234/v1" autocomplete="off">
+                <small class="text-muted">Leave empty to disable. Used only when all primary keys fail.</small>
+            </div>
+            <div class="form-group">
+                <label for="fallbackModel" class="form-label">Fallback Model Name</label>
+                <input type="text" id="fallbackModel" name="OPENAI_FALLBACK_MODEL" class="form-control" placeholder="qwen/qwen3-4b (as shown in LM Studio)" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="fallbackApiKey" class="form-label">Fallback API Key (optional)</label>
+                <input type="password" id="fallbackApiKey" name="OPENAI_FALLBACK_API_KEY" class="form-control" placeholder="lm-studio (any value works for local servers)" autocomplete="off">
             </div>
         </form>
     </div>

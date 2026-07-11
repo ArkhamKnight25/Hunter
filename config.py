@@ -26,30 +26,38 @@ def get_dynamic_setting(key, default_val=None):
             pass
     return os.getenv(key, default_val)
 
+def get_apify_api_tokens():
+    """Full pool of Apify tokens (APIFY_API_TOKENS csv + APIFY_API_TOKEN)."""
+    tokens = []
+    tokens_str = get_dynamic_setting("APIFY_API_TOKENS")
+    if tokens_str:
+        tokens.extend([t.strip() for t in tokens_str.split(",") if t.strip()])
+    single = get_dynamic_setting("APIFY_API_TOKEN")
+    if single and single not in tokens:
+        tokens.append(single)
+    return tokens
+
 def get_apify_api_token():
-    return get_dynamic_setting("APIFY_API_TOKEN")
+    """One token from the pool (random pick so runs cycle across tokens)."""
+    tokens = get_apify_api_tokens()
+    if not tokens:
+        return None
+    import random
+    return random.choice(tokens)
 
 def get_openai_api_keys():
+    """Primary-provider key pool (e.g. OpenRouter). Fallback-provider keys are
+    intentionally NOT merged in — they belong to the fallback base URL only."""
     keys = []
-    
+
     main_keys_str = get_dynamic_setting("OPENAI_API_KEYS")
     if main_keys_str:
         keys.extend([k.strip() for k in main_keys_str.split(",") if k.strip()])
-        
+
     main_key = get_dynamic_setting("OPENAI_API_KEY")
     if main_key and main_key not in keys:
         keys.append(main_key)
-        
-    fb_keys_str = get_dynamic_setting("OPENAI_FALLBACK_API_KEYS")
-    if fb_keys_str:
-        for k in fb_keys_str.split(","):
-            k = k.strip()
-            if k and k not in keys: keys.append(k)
-            
-    fb_key_single = get_dynamic_setting("OPENAI_FALLBACK_API_KEY")
-    if fb_key_single and fb_key_single not in keys:
-        keys.append(fb_key_single)
-        
+
     return keys
 
 def get_openai_base_url():
@@ -57,6 +65,36 @@ def get_openai_base_url():
 
 def get_openai_model():
     return get_dynamic_setting("OPENAI_MODEL", "gpt-4o-mini")
+
+def get_llm_provider_mode():
+    """Which LLM provider handles formatting/ranking:
+    - "auto"  (default): primary key pool first, fallback provider on failure
+    - "cloud": primary only, never fall back
+    - "local": fallback provider (LM Studio / Ollama) only
+    """
+    mode = (get_dynamic_setting("LLM_PROVIDER_MODE", "auto") or "auto").strip().lower()
+    return mode if mode in ("auto", "cloud", "local") else "auto"
+
+def get_openai_fallback_base_url():
+    """Empty/None = fallback disabled. For LM Studio on the host from inside
+    Docker use http://host.docker.internal:1234/v1."""
+    return get_dynamic_setting("OPENAI_FALLBACK_BASE_URL", "")
+
+def get_openai_fallback_model():
+    return get_dynamic_setting("OPENAI_FALLBACK_MODEL", "")
+
+def get_openai_fallback_api_key():
+    # LM Studio/Ollama accept any non-empty key.
+    key = get_dynamic_setting("OPENAI_FALLBACK_API_KEY")
+    if key:
+        return key
+    fb_keys_str = get_dynamic_setting("OPENAI_FALLBACK_API_KEYS")
+    if fb_keys_str:
+        for k in fb_keys_str.split(","):
+            k = k.strip()
+            if k:
+                return k
+    return "lm-studio"
 
 def set_dynamic_settings(settings_dict):
     r = get_redis_client()

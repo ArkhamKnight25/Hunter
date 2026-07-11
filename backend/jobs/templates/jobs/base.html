@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <!-- Clickjacking defense -->
-    <meta http-equiv="X-Frame-Options" content="DENY">
+    <!-- Clickjacking defense: X-Frame-Options is sent as an HTTP header by
+         Django's XFrameOptionsMiddleware (a <meta> version is invalid and
+         logs a console error). -->
     <title>{% block title %}AeroJob Hunter{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪂</text></svg>">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,36 +18,43 @@
     <!-- Global CSS Variables & Styling -->
     <style>
         :root {
-            /* HSL Theme Colors */
-            --bg-base: hsl(222, 47%, 10%);
-            --bg-surface: hsl(217, 33%, 15%);
-            --bg-surface-hover: hsl(217, 33%, 20%);
-            --bg-card: hsl(217, 33%, 17%);
-            --border-color: hsla(217, 33%, 30%, 0.4);
-            --border-hover: hsla(172, 66%, 50%, 0.4);
-            
-            --text-primary: hsl(210, 40%, 98%);
-            --text-secondary: hsl(215, 20%, 75%);
-            --text-muted: hsl(215, 16%, 55%);
-            
-            --brand-primary: hsl(172, 66%, 50%);
-            --brand-secondary: hsl(190, 90%, 45%);
-            --brand-gradient: linear-gradient(135deg, hsl(172, 66%, 50%) 0%, hsl(190, 90%, 45%) 100%);
-            
+            /* Hint the browser this is a dark UI so native form controls,
+               scrollbars and the color picker render dark. */
+            color-scheme: dark;
+            /* Apple-style neutral dark palette: near-black base, elevated
+               surfaces a step lighter, hairline borders, one calm accent. */
+            --bg-base: hsl(240, 7%, 6%);
+            --bg-surface: hsl(240, 5%, 10%);
+            --bg-surface-hover: hsl(240, 5%, 14%);
+            --bg-card: hsl(240, 5%, 11%);
+            --border-color: hsla(0, 0%, 100%, 0.09);
+            --border-hover: hsla(0, 0%, 100%, 0.18);
+
+            --text-primary: hsl(0, 0%, 98%);
+            --text-secondary: hsl(240, 4%, 72%);
+            --text-muted: hsl(240, 4%, 52%);
+
+            --brand-primary: hsl(172, 60%, 48%);
+            --brand-secondary: hsl(199, 89%, 55%);
+            --brand-gradient: linear-gradient(135deg, hsl(172, 60%, 48%) 0%, hsl(199, 89%, 55%) 100%);
+
             /* Match Tier Gradients */
             --tier-s-gradient: linear-gradient(135deg, hsl(45, 93%, 47%) 0%, hsl(16, 92%, 52%) 100%);
             --tier-a-gradient: linear-gradient(135deg, hsl(162, 84%, 40%) 0%, hsl(186, 94%, 39%) 100%);
             --tier-b-gradient: linear-gradient(135deg, hsl(262, 83%, 58%) 0%, hsl(231, 89%, 64%) 100%);
             --tier-c-gradient: linear-gradient(135deg, hsl(215, 16%, 47%) 0%, hsl(218, 11%, 65%) 100%);
             --tier-f-gradient: linear-gradient(135deg, hsl(346, 84%, 55%) 0%, hsl(324, 76%, 45%) 100%);
-            
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
-            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.25);
-            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.4);
-            
-            --radius-sm: 6px;
-            --radius-md: 12px;
-            --radius-lg: 20px;
+
+            /* Soft, diffuse elevation instead of hard drop shadows */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.35), 0 24px 60px rgba(0, 0, 0, 0.45);
+
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 22px;
+
+            --ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
         }
 
         * {
@@ -59,20 +68,27 @@
             width: 100%;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-base);
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             line-height: 1.5;
+            letter-spacing: -0.01em;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
 
         h1, h2, h3, h4, h5, h6 {
-            font-family: 'Outfit', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Outfit', sans-serif;
             font-weight: 600;
-            letter-spacing: -0.02em;
+            letter-spacing: -0.025em;
         }
 
         a {
@@ -97,17 +113,21 @@
             gap: 1.5rem;
         }
 
-        /* Premium Header */
+        /* Frosted-glass header */
         .app-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 1rem 1.5rem;
-            background: rgba(30, 41, 59, 0.4);
-            backdrop-filter: blur(12px);
+            background: rgba(22, 22, 26, 0.65);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0.75rem;
+            z-index: 100;
         }
 
         .logo-section {
@@ -128,7 +148,7 @@
             font-family: 'Outfit', sans-serif;
             font-size: 1.4rem;
             color: var(--bg-base);
-            box-shadow: 0 0 15px rgba(20, 240, 200, 0.4);
+            box-shadow: 0 2px 12px rgba(45, 200, 175, 0.25);
         }
 
         .logo-text h1 {
@@ -177,47 +197,52 @@
             text-decoration: underline;
         }
 
-        /* Gradient buttons */
+        /* Pill buttons */
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            padding: 0.6rem 1.2rem;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
+            padding: 0.6rem 1.35rem;
+            border-radius: 980px;
+            font-weight: 500;
             font-size: 0.875rem;
+            letter-spacing: -0.01em;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s var(--ease-smooth);
             border: 1px solid transparent;
-            font-family: 'Inter', sans-serif;
+            font-family: inherit;
         }
 
         .btn-primary {
             background: var(--brand-gradient);
             color: var(--bg-base);
-            box-shadow: 0 4px 14px rgba(20, 240, 200, 0.2);
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(45, 200, 175, 0.18);
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(20, 240, 200, 0.4);
-            filter: brightness(1.1);
+            box-shadow: 0 4px 18px rgba(45, 200, 175, 0.3);
+            filter: brightness(1.08);
         }
 
         .btn-primary:active {
-            transform: translateY(0);
+            transform: scale(0.98);
+            filter: brightness(0.95);
         }
 
         .btn-secondary {
-            background: transparent;
+            background: rgba(255, 255, 255, 0.06);
             color: var(--text-primary);
-            border-color: var(--border-color);
+            border-color: transparent;
         }
 
         .btn-secondary:hover {
-            background: var(--bg-surface-hover);
-            border-color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.11);
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.98);
         }
 
         /* Badge Styles */
@@ -264,7 +289,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(15, 23, 42, 0.75);
+            background: rgba(10, 10, 12, 0.7);
             backdrop-filter: blur(8px);
             z-index: 1000;
             opacity: 0;
@@ -284,17 +309,121 @@
             width: 100%;
             max-width: 600px;
             height: 100%;
-            background: var(--bg-surface);
+            background: rgba(22, 22, 26, 0.88);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
             border-left: 1px solid var(--border-color);
             z-index: 1001;
             box-shadow: var(--shadow-lg);
             display: flex;
             flex-direction: column;
-            transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .drawer.active {
             right: 0;
+        }
+
+        /* Settings drawer chrome + form controls. The settings drawer is
+           included from base.html, so its styles must live here (dashboard's
+           extra_css only styles the job-details drawer). Scoped to
+           #settingsDrawer to avoid overriding the details drawer. */
+        #settingsDrawer .drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        #settingsDrawer .drawer-title {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+        }
+
+        #settingsDrawer .drawer-body {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        #settingsDrawer .drawer-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-surface);
+            flex-shrink: 0;
+        }
+
+        #settingsDrawer .btn-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.75rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 0.25rem;
+            transition: color 0.2s ease;
+        }
+
+        #settingsDrawer .btn-close:hover {
+            color: var(--text-primary);
+        }
+
+        #settingsDrawer .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        #settingsDrawer .form-label {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        #settingsDrawer .form-control {
+            background: var(--bg-base);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 0.6rem 0.75rem;
+            font-size: 0.875rem;
+            width: 100%;
+            outline: none;
+            transition: border-color 0.2s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #settingsDrawer .form-control::placeholder {
+            color: var(--text-muted);
+        }
+
+        #settingsDrawer .form-control:focus {
+            border-color: var(--brand-primary);
+        }
+
+        #settingsDrawer .form-group small,
+        #settingsDrawer .text-muted {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        #settingsDrawer hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 1.5rem 0;
+        }
+
+        #settingsDrawer .btn-sm {
+            padding: 0.35rem 0.8rem;
+            font-size: 0.8125rem;
         }
 
         /* Mobile specific adjustments */
@@ -377,7 +506,9 @@
         }
 
         .toast {
-            background: var(--bg-surface);
+            background: rgba(30, 30, 35, 0.85);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
             border: 1px solid var(--border-color);
             border-left: 4px solid var(--brand-primary);
             border-radius: var(--radius-sm);
@@ -453,7 +584,7 @@
 
                 {% if request.user.is_staff %}
                 <form id="topTriggerForm" onsubmit="return false;">
-                    <select id="topTriggerSourceSelect" name="source" class="form-select" style="padding: 0.4rem; font-size: 0.875rem; background: rgba(30, 41, 59, 0.8); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: var(--radius-sm); min-width: 130px; outline: none;">
+                    <select id="topTriggerSourceSelect" name="source" class="form-select" style="padding: 0.4rem; font-size: 0.875rem; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: var(--radius-sm); min-width: 130px; outline: none;">
                         <option value="">All Actors</option>
                         {% for value, name in source_choices %}
                         <option value="{{ value }}">{{ name }}</option>

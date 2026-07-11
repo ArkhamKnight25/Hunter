@@ -439,36 +439,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-window.addApiKeyInput = function(value = '') {
-    const container = document.getElementById('apiKeysContainer');
+window.addPoolInput = function(containerId, inputClass, placeholder, value = '') {
+    const container = document.getElementById(containerId);
     if (!container) return;
-    
+
     const div = document.createElement('div');
     div.style.display = 'flex';
     div.style.gap = '0.5rem';
     div.style.marginBottom = '0.5rem';
-    
+
     const input = document.createElement('input');
     input.type = 'password';
-    input.className = 'form-control api-key-input';
-    input.placeholder = 'sk-...';
+    input.className = 'form-control ' + inputClass;
+    input.placeholder = placeholder;
     input.value = value;
     input.autocomplete = 'off';
-    
+
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'btn btn-secondary btn-sm';
     removeBtn.innerHTML = '&times;';
     removeBtn.onclick = function() { div.remove(); };
-    
+
     div.appendChild(input);
     div.appendChild(removeBtn);
     container.appendChild(div);
 };
 
+window.addApiKeyInput = function(value = '') {
+    window.addPoolInput('apiKeysContainer', 'api-key-input', 'sk-...', value);
+};
+
+window.addApifyTokenInput = function(value = '') {
+    window.addPoolInput('apifyTokensContainer', 'apify-token-input', 'apify_api_...', value);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('addApiKeyBtn')?.addEventListener('click', () => {
         window.addApiKeyInput('');
+    });
+    document.getElementById('addApifyTokenBtn')?.addEventListener('click', () => {
+        window.addApifyTokenInput('');
     });
 });
 
@@ -486,13 +497,16 @@ window.settingsDrawer = {
 
         // Fetch current settings
         try {
-            const resp = await fetch('/api/settings/');
+            const resp = await fetch('/api/auth/settings/');
             if (!resp.ok) throw new Error('Failed to load settings');
             const data = await resp.json();
 
+            document.getElementById('llmProviderMode').value = data.LLM_PROVIDER_MODE || 'auto';
             document.getElementById('openaiBaseUrl').value = data.OPENAI_BASE_URL || '';
             document.getElementById('openaiModel').value = data.OPENAI_MODEL || '';
-            document.getElementById('apifyApiToken').value = data.APIFY_API_TOKEN || '';
+            document.getElementById('fallbackBaseUrl').value = data.OPENAI_FALLBACK_BASE_URL || '';
+            document.getElementById('fallbackModel').value = data.OPENAI_FALLBACK_MODEL || '';
+            document.getElementById('fallbackApiKey').value = data.OPENAI_FALLBACK_API_KEY || '';
             const container = document.getElementById('apiKeysContainer');
             if (container) {
                 container.innerHTML = '';
@@ -503,8 +517,23 @@ window.settingsDrawer = {
                     keys.forEach(key => window.addApiKeyInput(key));
                 }
             }
+            const tokContainer = document.getElementById('apifyTokensContainer');
+            if (tokContainer) {
+                tokContainer.innerHTML = '';
+                const tokens = data.APIFY_API_TOKENS || [];
+                if (tokens.length === 0) {
+                    window.addApifyTokenInput('');
+                } else {
+                    tokens.forEach(tok => window.addApifyTokenInput(tok));
+                }
+            }
         } catch (err) {
-            window.window.showToast(`Error loading settings: ${err.message}`, 'error');
+            // Still render empty pool inputs so the form stays usable.
+            const container = document.getElementById('apiKeysContainer');
+            if (container && !container.children.length) window.addApiKeyInput('');
+            const tokContainer = document.getElementById('apifyTokensContainer');
+            if (tokContainer && !tokContainer.children.length) window.addApifyTokenInput('');
+            window.showToast(`Error loading settings: ${err.message}`, 'error');
         }
     },
 
@@ -522,14 +551,18 @@ window.settingsDrawer = {
         btn.disabled = true;
 
         const formData = {
+            LLM_PROVIDER_MODE: document.getElementById('llmProviderMode').value,
             OPENAI_BASE_URL: document.getElementById('openaiBaseUrl').value,
             OPENAI_MODEL: document.getElementById('openaiModel').value,
-            APIFY_API_TOKEN: document.getElementById('apifyApiToken').value,
+            OPENAI_FALLBACK_BASE_URL: document.getElementById('fallbackBaseUrl').value,
+            OPENAI_FALLBACK_MODEL: document.getElementById('fallbackModel').value,
+            OPENAI_FALLBACK_API_KEY: document.getElementById('fallbackApiKey').value,
+            APIFY_API_TOKENS: Array.from(document.querySelectorAll('.apify-token-input')).map(input => input.value).filter(val => val.trim() !== ''),
             OPENAI_API_KEYS: Array.from(document.querySelectorAll('.api-key-input')).map(input => input.value).filter(val => val.trim() !== '')
         };
 
         try {
-            const resp = await fetch('/api/settings/', {
+            const resp = await fetch('/api/auth/settings/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -542,13 +575,13 @@ window.settingsDrawer = {
 
             const result = await resp.json();
             if (result.status === 'success') {
-                window.window.showToast('Settings saved successfully! ⚙️', 'success');
+                window.showToast('Settings saved successfully! ⚙️', 'success');
                 this.hide();
             } else {
                 throw new Error(result.message || 'Unknown error');
             }
         } catch (err) {
-            window.window.showToast(`Error saving settings: ${err.message}`, 'error');
+            window.showToast(`Error saving settings: ${err.message}`, 'error');
         } finally {
             btn.textContent = originalText;
             btn.disabled = false;

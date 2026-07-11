@@ -511,29 +511,54 @@ class SettingsAPIView(APIView):
 
     def get(self, request):
         from config import (
-            get_apify_api_token, get_openai_model, get_openai_base_url,
-            get_openai_api_keys,
+            get_apify_api_tokens, get_openai_model, get_openai_base_url,
+            get_openai_api_keys, get_openai_fallback_base_url,
+            get_openai_fallback_model, get_dynamic_setting,
+            get_llm_provider_mode,
         )
         return Response({
+            "LLM_PROVIDER_MODE": get_llm_provider_mode(),
             "OPENAI_BASE_URL": get_openai_base_url() or "https://api.openai.com/v1",
             "OPENAI_MODEL": get_openai_model() or "gpt-4o-mini",
-            "APIFY_API_TOKEN": get_apify_api_token() or "",
+            "APIFY_API_TOKENS": get_apify_api_tokens() or [],
             "OPENAI_API_KEYS": get_openai_api_keys() or [],
+            "OPENAI_FALLBACK_BASE_URL": get_openai_fallback_base_url() or "",
+            "OPENAI_FALLBACK_MODEL": get_openai_fallback_model() or "",
+            "OPENAI_FALLBACK_API_KEY": get_dynamic_setting("OPENAI_FALLBACK_API_KEY") or "",
         })
 
     def post(self, request):
         data = request.data
-        api_keys = data.get("OPENAI_API_KEYS")
-        if isinstance(api_keys, list):
-            api_keys_str = ",".join([k.strip() for k in api_keys if k.strip()])
-        else:
-            api_keys_str = api_keys
+
+        def _csv(value):
+            if isinstance(value, list):
+                return ",".join([v.strip() for v in value if v and v.strip()])
+            return value
+
+        apify_tokens_csv = _csv(data.get("APIFY_API_TOKENS"))
+        apify_token_single = data.get("APIFY_API_TOKEN")
+        if apify_tokens_csv is not None and apify_token_single is None:
+            # Pool now owns the tokens; blank the legacy singular key so a
+            # token removed from the pool doesn't linger in Redis.
+            apify_token_single = ""
+
+        mode = data.get("LLM_PROVIDER_MODE")
+        if mode is not None and str(mode).strip().lower() not in ("auto", "cloud", "local"):
+            return Response(
+                {"status": "error", "message": "LLM_PROVIDER_MODE must be auto, cloud or local."},
+                status=400,
+            )
 
         keys_to_update = {
+            "LLM_PROVIDER_MODE": str(mode).strip().lower() if mode is not None else None,
             "OPENAI_BASE_URL": data.get("OPENAI_BASE_URL"),
             "OPENAI_MODEL": data.get("OPENAI_MODEL"),
-            "APIFY_API_TOKEN": data.get("APIFY_API_TOKEN"),
-            "OPENAI_API_KEYS": api_keys_str,
+            "APIFY_API_TOKEN": apify_token_single,
+            "APIFY_API_TOKENS": apify_tokens_csv,
+            "OPENAI_API_KEYS": _csv(data.get("OPENAI_API_KEYS")),
+            "OPENAI_FALLBACK_BASE_URL": data.get("OPENAI_FALLBACK_BASE_URL"),
+            "OPENAI_FALLBACK_MODEL": data.get("OPENAI_FALLBACK_MODEL"),
+            "OPENAI_FALLBACK_API_KEY": data.get("OPENAI_FALLBACK_API_KEY"),
         }
 
         valid_keys = {k: str(v) for k, v in keys_to_update.items() if v is not None}
